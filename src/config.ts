@@ -22,9 +22,9 @@ export const config = {
   // <from> ===================================== From address //
   // <to> ========================================= To address //
   saleMessage:
-    '💀 Obit #<tokenId> was sold for <ethPrice> (<fiatPrice>)\n\nfrom: <from>\nto: <to>\n\nhttps://etherscan.io/tx/<txHash>\nhttps://opensea.io/assets/0x30cdac3871c41a63767247c8d1a2de59f5714e78/<tokenId>\nhttps://looksrare.org/collections/0x30cdac3871c41a63767247c8d1a2de59f5714e78/<tokenId>\n',
+    '💀 Obit #<tokenId> was sold for <ethPrice> (<fiatPrice>)\n\nfrom: <from>\nto: <to>\n\nhttps://etherscan.io/tx/<txHash>\nhttps://opensea.io/assets/ethereum/0x30cdac3871c41a63767247c8d1a2de59f5714e78/<tokenId>\nhttps://looksrare.org/collections/0x30cdac3871c41a63767247c8d1a2de59f5714e78/<tokenId>\n',
   bidMessage:
-    '💀 Obit #<tokenId> received a bid for <ethPrice> (<fiatPrice>)\n\nfrom: <from>\n\nhttps://etherscan.io/tx/<txHash>\nhttps://opensea.io/assets/0x30cdac3871c41a63767247c8d1a2de59f5714e78/<tokenId>\nhttps://looksrare.org/collections/0x30cdac3871c41a63767247c8d1a2de59f5714e78/<tokenId>\n',
+    '💀 Obit #<tokenId> received a bid for <ethPrice> (<fiatPrice>)\n\nfrom: <from>\n\nhttps://etherscan.io/tx/<txHash>\nhttps://opensea.io/assets/ethereum/0x30cdac3871c41a63767247c8d1a2de59f5714e78/<tokenId>\nhttps://looksrare.org/collections/0x30cdac3871c41a63767247c8d1a2de59f5714e78/<tokenId>\n',
   // Prefer ENS over 0x address (Uses more Alchemy requests) = //
   // Available Options: ====================================== //
   // true, false ============================================= //
