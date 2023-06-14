@@ -41,6 +41,7 @@ export class Erc721SalesService extends BaseService {
     this.provider.on(
       { address: config.contract_address, topics: [topics] },
       (event) => {
+        console.log('--- event firing', JSON.stringify(event, null, 2));
         this.getTransactionDetails(event).then(async (res) => {
           if (!res) return this.logger.log('***** NOTHING TO TWEET *****');
           // Only tweet transfers with value (Ignore w2w transfers)
