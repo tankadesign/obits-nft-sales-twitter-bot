@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import fs from 'fs';
-import twit from 'twit';
+import { EUploadMimeType, TwitterApi } from 'twitter-api-v2';
 
 import { ethers } from 'ethers';
 
@@ -35,14 +35,12 @@ const provider = new ethers.providers.JsonRpcProvider(
   alchemyAPIUrl + alchemyAPIKey,
 );
 
-const twitterConfig = {
-  consumer_key: process.env.TWITTER_API_KEY,
-  consumer_secret: process.env.TWITTER_API_KEY_SECRET,
-  access_token: process.env.TWITTER_ACCESS_TOKEN_KEY,
-  access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
-};
-
-const twitterClient = new twit(twitterConfig);
+const v2Client = new TwitterApi({
+  accessToken: process.env.TWITTER_ACCESS_TOKEN_KEY,
+  accessSecret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
+  appKey: process.env.TWITTER_API_KEY,
+  appSecret: process.env.TWITTER_API_KEY_SECRET,
+});
 
 export enum TweetType {
   SALE,
@@ -111,7 +109,7 @@ export class BaseService {
   async tweet(
     data: TweetRequest,
     test: boolean = false,
-  ): Promise<TweetRequest> {
+  ): Promise<TweetRequest | null> {
     let tweetText: string =
       data.type === TweetType.SALE ? config.saleMessage : config.bidMessage;
 
@@ -150,47 +148,55 @@ export class BaseService {
       ? data.imageUrl
       : this.transformImage(data.imageUrl);
 
-    let processedImage: string;
-    if (image) processedImage = await this.getBase64(image);
+    let processedImage: Buffer | undefined;
+    if (image) processedImage = await this.getImageFile(image);
 
-    let media_ids: Array<string>;
+    let media_id: string;
     if (processedImage) {
       // Upload the item's image to Twitter & retrieve a reference to it
-      media_ids = await new Promise((resolve) => {
-        twitterClient.post(
-          'media/upload',
-          { media_data: processedImage },
-          (error, media: any) => {
-            resolve(error ? null : [media.media_id_string]);
-          },
-        );
+      media_id = await v2Client.v1.uploadMedia(processedImage, {
+        mimeType: EUploadMimeType.Png,
       });
     }
 
     if (test) tweetText = `***TEST***\n\n${tweetText}`;
 
     let tweet: any = { status: tweetText };
-    if (media_ids) tweet.media_ids = media_ids;
 
     // Post the tweet 👇
     // If you need access to this endpoint, you’ll need to apply for Elevated access via the Developer Portal. You can learn more here: https://developer.twitter.com/en/docs/twitter-api/getting-started/about-twitter-api#v2-access-leve
-    return new Promise((resolve, reject) => {
-      twitterClient.post('statuses/update', tweet, (error) => {
-        if (!error) {
-          console.log(`Successfully tweeted: ${tweetText}`);
-          obitsSalesStats.tweetsSent++;
-          obitsSalesStats.lastSaleDate = new Date();
-          obitsSalesStats.sales++;
-          obitsSalesStats.totalEth += data.alternateValue || data.ether;
-          (obitsSalesStats.ethDisplay = currency(obitsSalesStats.totalEth, {
-            symbol: 'Ξ',
-            precision: 3,
-          }).format()),
-            (obitsSalesStats.lastSale = data);
-          resolve(data);
+    const { data: createdTweet, errors: errors } = await v2Client.v2.tweet(
+      tweetText,
+      { media: { media_ids: [media_id] } },
+    );
+    if (!errors) {
+      console.log(
+        `Successfully tweeted: ${createdTweet.id} -> ${createdTweet.text}`,
+      );
+      obitsSalesStats.tweetsSent++;
+      obitsSalesStats.lastSaleDate = new Date();
+      obitsSalesStats.sales++;
+      obitsSalesStats.totalEth += data.alternateValue || data.ether;
+      (obitsSalesStats.ethDisplay = currency(obitsSalesStats.totalEth, {
+        symbol: 'Ξ',
+        precision: 3,
+      }).format()),
+        (obitsSalesStats.lastSale = data);
+      return data;
+    } else {
+      console.error(errors);
+      return null;
+    }
+  }
+
+  async getImageFile(url: string): Promise<Buffer | undefined> {
+    return new Promise((resolve, _) => {
+      this.http.get(url, { responseType: 'arraybuffer' }).subscribe((res) => {
+        if (res.data) {
+          const file = Buffer.from(res.data, 'binary');
+          resolve(file);
         } else {
-          console.error(error);
-          reject();
+          resolve(undefined);
         }
       });
     });
